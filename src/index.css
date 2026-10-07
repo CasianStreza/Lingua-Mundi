@@ -1,0 +1,654 @@
+:root {
+  --bg: #050914;
+  --text: #e6edf8;
+  --muted: #8b9bb8;
+  --accent: #38bdf8;
+  --accent-2: #a78bfa;
+  --glass: rgba(13, 20, 38, 0.72);
+  --glass-strong: rgba(13, 20, 38, 0.92);
+  --border: rgba(148, 163, 184, 0.18);
+  --shadow: 0 20px 50px -12px rgba(0, 0, 0, 0.6);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--text);
+  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+#root, .app-root {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  overflow: hidden;
+}
+
+button, input, select {
+  font: inherit;
+  color: inherit;
+}
+
+/* ---------- Map Container ---------- */
+.map-container {
+  position: fixed;
+  inset: 0;
+}
+
+#world-map-svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  cursor: grab;
+  touch-action: none;
+}
+
+#world-map-svg:active {
+  cursor: grabbing;
+}
+
+.sphere {
+  stroke: rgba(56, 189, 248, 0.25);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+.graticule {
+  fill: none;
+  stroke: rgba(148, 163, 184, 0.07);
+  stroke-width: 0.6;
+  vector-effect: non-scaling-stroke;
+}
+
+.borders {
+  fill: none;
+  stroke: rgba(5, 9, 20, 0.9);
+  stroke-width: 0.6;
+  vector-effect: non-scaling-stroke;
+  pointer-events: none;
+}
+
+.country {
+  fill: var(--c, #243049);
+  stroke: none;
+  cursor: pointer;
+  transition: fill 0.15s ease;
+}
+
+.country:hover {
+  fill: var(--ch, #3b4a6b);
+}
+
+.country.pinned {
+  fill: #0284c7;
+}
+
+.country.selected {
+  fill: #7dd3fc;
+  stroke: #ffffff;
+  stroke-width: 1.5;
+  vector-effect: non-scaling-stroke;
+}
+
+/* ---------- Top bar ---------- */
+.topbar {
+  position: fixed;
+  top: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(720px, calc(100vw - 24px));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  z-index: 10;
+}
+
+.searchbar {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px 6px 18px;
+  background: var(--glass);
+  -webkit-backdrop-filter: blur(18px) saturate(1.4);
+  backdrop-filter: blur(18px) saturate(1.4);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  box-shadow: var(--shadow), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.searchbar:focus-within {
+  border-color: rgba(56, 189, 248, 0.6);
+  box-shadow: var(--shadow), 0 0 0 4px rgba(56, 189, 248, 0.15);
+}
+
+.search-icon {
+  color: var(--accent);
+  display: grid;
+  place-items: center;
+}
+
+#word-input {
+  flex: 1;
+  min-width: 0;
+  background: transparent;
+  border: 0;
+  outline: none;
+  font-size: 1.15rem;
+  font-weight: 600;
+  padding: 8px 4px;
+}
+
+#word-input::placeholder {
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.src-wrap select {
+  appearance: none;
+  background: rgba(255, 255, 255, 0.06)
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%238b9bb8'/%3E%3C/svg%3E")
+    no-repeat right 12px center;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 8px 30px 8px 14px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  max-width: 160px;
+}
+
+.src-wrap select option {
+  background: #0f172a;
+  color: #fff;
+}
+
+.pill-btn {
+  border: 0;
+  border-radius: 999px;
+  padding: 9px 16px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  color: #04101f;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: transform 0.15s, opacity 0.15s;
+}
+
+.pill-btn:hover {
+  transform: translateY(-1px);
+}
+
+.pill-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+  transform: none;
+}
+
+.hint {
+  margin: 0;
+  padding: 5px 14px;
+  font-size: 0.8rem;
+  color: var(--muted);
+  background: rgba(5, 9, 20, 0.55);
+  border-radius: 999px;
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+}
+
+.hint b {
+  color: var(--text);
+  font-weight: 600;
+}
+
+/* ---------- Map Pins Overlay ---------- */
+#labels {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 5;
+}
+
+.pin {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform: translate(-50%, -100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 6px 12px 5px;
+  background: var(--glass-strong);
+  border: 1px solid rgba(56, 189, 248, 0.55);
+  border-radius: 12px;
+  box-shadow: 0 8px 24px -6px rgba(0, 0, 0, 0.7), 0 0 14px -4px rgba(56, 189, 248, 0.6);
+  pointer-events: auto;
+  cursor: pointer;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.pin::after {
+  content: "";
+  position: absolute;
+  bottom: -6px;
+  left: 50%;
+  width: 10px;
+  height: 10px;
+  transform: translateX(-50%) rotate(45deg);
+  background: inherit;
+  border-right: 1px solid rgba(56, 189, 248, 0.55);
+  border-bottom: 1px solid rgba(56, 189, 248, 0.55);
+}
+
+.pin.active {
+  border-color: #ffffff;
+  box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.8), 0 0 18px 0px rgba(56, 189, 248, 0.9);
+}
+
+.pin.active::after {
+  border-color: #ffffff;
+}
+
+.pin-word {
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+
+.pin-lang {
+  font-size: 0.65rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* ---------- Country Detail Card ---------- */
+.card {
+  position: fixed;
+  top: 130px;
+  right: 20px;
+  width: min(370px, calc(100vw - 40px));
+  max-height: calc(100dvh - 150px);
+  overflow-y: auto;
+  padding: 20px;
+  background: var(--glass);
+  -webkit-backdrop-filter: blur(20px) saturate(1.4);
+  backdrop-filter: blur(20px) saturate(1.4);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  box-shadow: var(--shadow);
+  z-index: 9;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.3) transparent;
+}
+
+.card-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  border: 0;
+  background: rgba(255, 255, 255, 0.07);
+  cursor: pointer;
+  color: var(--muted);
+  transition: background 0.15s, color 0.15s;
+}
+
+.card-close:hover {
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+}
+
+.card-head {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  padding-right: 30px;
+}
+
+.flag {
+  width: 56px;
+  height: 40px;
+  object-fit: cover;
+  border-radius: 6px;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.12), 0 4px 12px rgba(0, 0, 0, 0.4);
+  flex-shrink: 0;
+}
+
+.flag-empty {
+  display: grid;
+  place-items: center;
+  background: rgba(255, 255, 255, 0.06);
+  font-size: 1.3rem;
+}
+
+.card-head h2 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.card-head p {
+  margin: 3px 0 0;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.source {
+  margin: 18px 0 10px;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.source b {
+  color: var(--text);
+}
+
+.empty {
+  margin-top: 18px;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.translations {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.translations li {
+  padding: 14px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.translations li:first-child {
+  background: linear-gradient(
+    135deg,
+    rgba(56, 189, 248, 0.14),
+    rgba(167, 139, 250, 0.12)
+  );
+  border-color: rgba(56, 189, 248, 0.3);
+}
+
+.lang-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+
+.lang-native {
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.tr {
+  margin-top: 6px;
+  font-size: 1.6rem;
+  font-weight: 700;
+  word-break: break-word;
+  line-height: 1.25;
+}
+
+.roman {
+  margin-top: 2px;
+  font-size: 0.85rem;
+  color: var(--muted);
+  font-style: italic;
+}
+
+.err {
+  margin-top: 6px;
+  font-size: 0.9rem;
+  color: #fca5a5;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.actions button,
+.text-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.actions button:hover:not(:disabled),
+.text-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.actions button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.card-foot {
+  margin-top: 14px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.skeleton {
+  height: 28px;
+  margin-top: 8px;
+  width: 60%;
+  border-radius: 8px;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.05) 0%,
+    rgba(255, 255, 255, 0.14) 50%,
+    rgba(255, 255, 255, 0.05) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.2s infinite linear;
+}
+
+@keyframes shimmer {
+  to {
+    background-position: -200% 0;
+  }
+}
+
+/* ---------- Tooltip ---------- */
+.tooltip {
+  position: fixed;
+  left: 0;
+  top: 0;
+  padding: 6px 12px;
+  font-size: 0.82rem;
+  background: var(--glass-strong);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  pointer-events: none;
+  z-index: 20;
+  white-space: nowrap;
+}
+
+.tooltip span {
+  color: var(--muted);
+}
+
+/* ---------- Zoom controls ---------- */
+.zoom-controls {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  display: flex;
+  flex-direction: column;
+  background: var(--glass);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+  z-index: 8;
+}
+
+.zoom-controls button {
+  width: 42px;
+  height: 42px;
+  border: 0;
+  background: transparent;
+  font-size: 1.2rem;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.zoom-controls button + button {
+  border-top: 1px solid var(--border);
+}
+
+.zoom-controls button:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* ---------- Loading Overlay ---------- */
+.loading {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 14px;
+  background: var(--bg);
+  color: var(--muted);
+  z-index: 50;
+  pointer-events: none;
+}
+
+.loading.error {
+  color: #fca5a5;
+}
+
+.spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid rgba(56, 189, 248, 0.2);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* ---------- Mobile Layout ---------- */
+@media (max-width: 640px) {
+  .topbar {
+    top: 10px;
+  }
+  .searchbar {
+    flex-wrap: wrap;
+    border-radius: 22px;
+    padding: 8px 8px 8px 14px;
+  }
+  #word-input {
+    flex-basis: calc(100% - 40px);
+  }
+  .src-wrap select {
+    flex: 1;
+    max-width: none;
+  }
+  .card {
+    top: auto;
+    right: 10px;
+    left: 10px;
+    bottom: 10px;
+    width: auto;
+    max-height: 55dvh;
+  }
+  .zoom-controls {
+    display: none;
+  }
+  .continent-legend {
+    display: none;
+  }
+}
+
+/* ---------- Continent Color Legend ---------- */
+.continent-legend {
+  position: fixed;
+  left: 20px;
+  bottom: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 10px 14px;
+  background: var(--glass);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow: var(--shadow);
+  z-index: 8;
+  pointer-events: none;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.72rem;
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  box-shadow: 0 0 6px rgba(0, 0, 0, 0.4);
+}
+
+.legend-label {
+  white-space: nowrap;
+}
+
+.continent-badge {
+  color: var(--accent);
+  font-weight: 600;
+}
